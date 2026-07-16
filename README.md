@@ -1,56 +1,59 @@
 # Maestro
 
-Controle de áudio por aplicativo para macOS, inspirado no SoundSource. Uso pessoal.
+Controle de volume e saída de áudio **por aplicativo** no macOS, direto da barra de menu.
 
-## O problema
-
-O macOS só tem um volume global e uma saída padrão. A demanda:
+O macOS só oferece um volume global e uma saída padrão. O Maestro libera o que falta:
 
 - **Volume independente por app** — call do Teams num nível, Spotify em outro.
 - **Saída independente por app** — Teams no headset, Spotify na caixa de som, outro app no alto-falante do Mac.
+- **Perfis nomeados** — salve o estado de todos os apps (volumes + saídas) e restaure com um clique.
+- **Persistência** — a configuração de cada app é reaplicada automaticamente quando ele volta a tocar.
+- **Atualização no próprio app** — o Maestro avisa quando há versão nova e se atualiza sozinho (Sparkle).
 
-## Decisões tomadas (2026-07-16)
+O app vive na barra de menu (ícone de três faders). O popover lista os apps tocando áudio, cada um com slider de volume e seletor de saída. Sem driver de áudio: devolver o controle de um app restaura o fluxo normal na hora.
 
-| Decisão | Escolha |
-|---|---|
-| Stack | Swift nativo (SwiftUI + Core Audio) |
-| Interface | App de menu bar (popover com sliders e seletor de saída por app) |
-| Escopo do MVP | Volume por app **+** roteamento por app juntos |
-| Rota técnica | Core Audio **Process Taps** (macOS 14.4+) — sem driver de áudio próprio |
-| Distribuição | Nenhuma — build local, assinatura ad-hoc |
-| Identidade visual | Marca "Console" (proposta B — três faders formando o M) com a paleta "Batuta" (proposta A): marinho `#1B2138`, latão `#C9A455`, marfim `#F2EDE3`, plateia `#9AA3BF`. Coloração: **V1 · Latão clássico** (trilha acesa em latão, knobs marfim) |
+## Requisitos
 
-Extras no radar (pós-MVP, em ordem): persistência de config por app, perfis automáticos (ex.: call no Teams abaixa o Spotify), EQ e boost acima de 100%.
+- macOS 15 (Sequoia) ou superior
+- Na primeira vez que controlar um app, o macOS pede a permissão de **Gravação de Áudio do Sistema** — conceda uma vez
 
-Fora de escopo por decisão: atalhos globais de teclado.
+## Instalação
 
-## Ambiente
-
-- macOS 26.5.2 (Process Taps disponíveis desde o 14.4)
-- Swift 6.3.3 via Command Line Tools — **sem Xcode completo instalado**
-- Saídas de áudio existentes para testar roteamento: monitor DisplayPort (CZ270F165), USB PnP Audio Device
-
-## Como buildar e instalar o app
+Via Homebrew (tap [`kelvynkrug/homebrew-tap`](https://github.com/kelvynkrug/homebrew-tap); requer uma release publicada):
 
 ```sh
-scripts/build-app.sh            # monta dist/Maestro.app (SwiftPM, sem Xcode)
+brew install --cask kelvynkrug/tap/maestro
+```
+
+Ou baixe o `Maestro-x.y.z.zip` da [página de releases](https://github.com/kelvynkrug/maestro/releases) (app assinado e notarizado) e arraste para `/Applications`.
+
+## Build a partir do código
+
+Só precisa do Swift 6 via Command Line Tools — **não precisa do Xcode completo**:
+
+```sh
+git clone https://github.com/kelvynkrug/maestro.git
+cd maestro
+scripts/build-app.sh            # monta dist/Maestro.app (SwiftPM, assinatura ad-hoc)
 scripts/build-app.sh --install  # + instala em /Applications e abre
 ```
 
-O Maestro vive na barra de menu (ícone de três faders). No primeiro controle de um app, o macOS pede a permissão de **Gravação de Áudio do Sistema** — conceda uma vez. Estrutura: `Sources/MaestroEngine` (Core Audio), `Sources/MaestroApp` (SwiftUI), `packaging/Info.plist`, `scripts/`.
+## Como funciona por baixo
 
-## Como rodar o spike (fase 0)
+O Maestro usa **Core Audio Process Taps** (API pública desde o macOS 14.4). Para cada app controlado, cria um tap que captura e silencia o áudio original do processo, liga o tap a um aggregate device privado apontando para a saída escolhida e aplica o ganho num callback de áudio (IOProc). Volume é o multiplicador de ganho; trocar a saída é reconfigurar o aggregate. Nada de driver ou extensão de kernel — destruir o tap devolve o áudio ao comportamento normal do sistema, inclusive em caso de crash.
 
-```sh
-swift run maestro-spike list                      # apps com áudio + saídas disponíveis
-swift run maestro-spike tap spotify --volume 50   # intercepta o Spotify a 50%
-swift run maestro-spike tap teams --out 1         # Teams direto na saída [1]
+## Estrutura do projeto
+
 ```
-
-No modo interativo: `0-200` define o volume em %, `o` lista as saídas, `o N` troca a saída ao vivo, `q` encerra e devolve o áudio ao normal.
+Sources/MaestroEngine/   Core Audio: taps, aggregates, agrupamento de processos por app
+Sources/MaestroApp/      SwiftUI: menu bar, popover, configurações, identidade visual
+Sources/maestro-spike/   CLI usado para validar a rota técnica (fase 0)
+packaging/               Info.plist, entitlements, cask de referência
+scripts/                 build-app.sh, release.sh (notarização), generate-icon.swift
+docs/                    arquitetura e roadmap
+```
 
 ## Documentos
 
 - [docs/arquitetura.md](docs/arquitetura.md) — rota técnica, APIs, permissões e riscos
-- [docs/roadmap.md](docs/roadmap.md) — fases de implementação com critérios de pronto
-- [docs/identidade-visual/propostas.html](docs/identidade-visual/propostas.html) — identidade visual (escolhida: Console × Batuta, V1)
+- [docs/roadmap.md](docs/roadmap.md) — fases de implementação (próximas: perfis automáticos, EQ e boost)
