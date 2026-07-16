@@ -117,6 +117,7 @@ struct PopoverView: View {
 private struct AppRow: View {
     @EnvironmentObject private var engine: MaestroEngine
     let app: AudioAppGroup
+    @State private var showEQ = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -143,11 +144,30 @@ private struct AppRow: View {
             }
 
             HStack(spacing: 10) {
-                MaestroSlider(value: volumeBinding)
+                MaestroSlider(value: volumeBinding, range: 0...200, mark: 100)
                 Text("\(Int(engine.volumePercent(for: app.id)))%")
                     .font(.caption.monospacedDigit().weight(.medium))
                     .foregroundStyle(Theme.marfim)
-                    .frame(width: 38, alignment: .trailing)
+                    .frame(width: 40, alignment: .trailing)
+                eqToggle
+            }
+
+            if showEQ {
+                VStack(spacing: 6) {
+                    eqBandRow(label: "Grave", band: \.low)
+                    eqBandRow(label: "Médio", band: \.mid)
+                    eqBandRow(label: "Agudo", band: \.high)
+                    if engine.hasEQ(app.id) {
+                        HStack {
+                            Spacer()
+                            Button("Zerar EQ") { engine.setEQ(low: 0, mid: 0, high: 0, for: app.id) }
+                                .buttonStyle(.plain)
+                                .font(.caption2)
+                                .foregroundStyle(Theme.plateia)
+                        }
+                    }
+                }
+                .padding(.top, 2)
             }
         }
         .padding(.horizontal, 14)
@@ -159,6 +179,49 @@ private struct AppRow: View {
             get: { engine.volumePercent(for: app.id) },
             set: { engine.setVolume($0, for: app.id) }
         )
+    }
+
+    private var eqToggle: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) { showEQ.toggle() }
+        } label: {
+            Text("EQ")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(engine.hasEQ(app.id) ? Theme.fosso : Theme.marfim)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(engine.hasEQ(app.id) ? Theme.latao : Theme.painel, in: RoundedRectangle(cornerRadius: 5))
+                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Theme.linha, lineWidth: engine.hasEQ(app.id) ? 0 : 1))
+        }
+        .buttonStyle(.plain)
+        .help("Equalizador (grave, médio, agudo)")
+    }
+
+    private func eqBandRow(label: String, band: KeyPath<(low: Double, mid: Double, high: Double), Double>) -> some View {
+        let gains = engine.eqGains(for: app.id)
+        let binding = Binding<Double>(
+            get: { engine.eqGains(for: app.id)[keyPath: band] },
+            set: { newValue in
+                var updated = engine.eqGains(for: app.id)
+                switch band {
+                case \.low: updated.low = newValue
+                case \.mid: updated.mid = newValue
+                default: updated.high = newValue
+                }
+                engine.setEQ(low: updated.low, mid: updated.mid, high: updated.high, for: app.id)
+            }
+        )
+        return HStack(spacing: 10) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(Theme.plateia)
+                .frame(width: 42, alignment: .leading)
+            MaestroSlider(value: binding, range: -12...12, mark: 0, bipolar: true)
+            Text(String(format: "%+.0f dB", gains[keyPath: band]))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(Theme.marfim)
+                .frame(width: 44, alignment: .trailing)
+        }
     }
 
     private var currentOutputName: String {

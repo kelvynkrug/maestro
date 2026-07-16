@@ -6,6 +6,7 @@ O macOS só oferece um volume global e uma saída padrão. O Maestro libera o qu
 
 - **Volume independente por app** — call do Teams num nível, Spotify em outro.
 - **Saída independente por app** — Teams no headset, Spotify na caixa de som, outro app no alto-falante do Mac.
+- **EQ de 3 bandas e boost** — grave, médio e agudo (±12 dB) por app, e volume até 200% com limiter contra clipping.
 - **Perfis nomeados** — salve o estado de todos os apps (volumes + saídas) e restaure com um clique.
 - **Persistência** — a configuração de cada app é reaplicada automaticamente quando ele volta a tocar.
 - **Atualização no próprio app** — o Maestro avisa quando há versão nova e se atualiza sozinho (Sparkle).
@@ -40,7 +41,7 @@ scripts/build-app.sh --install  # + instala em /Applications e abre
 
 ## Como funciona por baixo
 
-O Maestro usa **Core Audio Process Taps** (API pública desde o macOS 14.4). Para cada app controlado, cria um tap que captura e silencia o áudio original do processo, liga o tap a um aggregate device privado apontando para a saída escolhida e aplica o ganho num callback de áudio (IOProc). Volume é o multiplicador de ganho; trocar a saída é reconfigurar o aggregate. Nada de driver ou extensão de kernel — destruir o tap devolve o áudio ao comportamento normal do sistema, inclusive em caso de crash.
+O Maestro usa **Core Audio Process Taps** (API pública desde o macOS 14.4). Para cada app controlado, cria um tap que captura e silencia o áudio original do processo, liga o tap a um aggregate device privado apontando para a saída escolhida e aplica o ganho num callback de áudio (IOProc). Volume é o multiplicador de ganho; trocar a saída é reconfigurar o aggregate. O EQ (biquads de 3 bandas) e o limiter rodam no mesmo callback, sem alocações nem locks no thread de áudio. Nada de driver ou extensão de kernel — destruir o tap devolve o áudio ao comportamento normal do sistema, inclusive em caso de crash.
 
 ## Estrutura do projeto
 

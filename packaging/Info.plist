@@ -2,35 +2,35 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleName</key>
-	<string>Maestro</string>
 	<key>CFBundleDisplayName</key>
 	<string>Maestro</string>
+	<key>CFBundleExecutable</key>
+	<string>Maestro</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.kelvynkrug.maestro</string>
-	<key>CFBundleExecutable</key>
+	<key>CFBundleName</key>
 	<string>Maestro</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>CFBundleIconFile</key>
-	<string>AppIcon</string>
+	<string>0.1.0</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>
 	<true/>
-	<key>NSHighResolutionCapable</key>
-	<true/>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>O Maestro captura o áudio de apps específicos para controlar o volume e a saída de cada um.</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 	<key>SUFeedURL</key>
 	<string>https://github.com/kelvynkrug/maestro/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>O8jQQEKmVFFtG6yg2y5WfBo1b25hNf9Ou8tCSHVf1yk=</string>
-	<key>SUEnableAutomaticChecks</key>
-	<true/>
 </dict>
 </plist>

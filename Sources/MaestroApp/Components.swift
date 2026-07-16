@@ -1,22 +1,45 @@
 import SwiftUI
 
 /// Slider no estilo da identidade: trilha visível, preenchimento latão, knob marfim.
+/// `bipolar` preenche a partir do centro (EQ); `mark` desenha um risco de referência (ex.: 100%).
 struct MaestroSlider: View {
-    @Binding var value: Double // 0...100
+    @Binding var value: Double
+    var range: ClosedRange<Double> = 0...100
+    var mark: Double?
+    var bipolar = false
 
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
-            let fraction = CGFloat(value / 100)
+            let span = range.upperBound - range.lowerBound
+            let fraction = CGFloat((value - range.lowerBound) / span)
             let knobX = min(max(8, width * fraction), width - 8)
 
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(Theme.linha)
                     .frame(height: 5)
-                Capsule()
-                    .fill(Theme.latao)
-                    .frame(width: max(5, width * fraction), height: 5)
+
+                if bipolar {
+                    let centerX = width / 2
+                    Capsule()
+                        .fill(Theme.latao)
+                        .frame(width: max(2, abs(width * fraction - centerX)), height: 5)
+                        .offset(x: min(centerX, width * fraction))
+                } else {
+                    Capsule()
+                        .fill(Theme.latao)
+                        .frame(width: max(5, width * fraction), height: 5)
+                }
+
+                if let mark {
+                    let markX = width * CGFloat((mark - range.lowerBound) / span)
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(Theme.plateia)
+                        .frame(width: 2, height: 11)
+                        .position(x: markX, y: geometry.size.height / 2)
+                }
+
                 Circle()
                     .fill(Theme.marfim)
                     .frame(width: 16, height: 16)
@@ -27,7 +50,8 @@ struct MaestroSlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
-                        value = min(100, max(0, Double(gesture.location.x / width) * 100))
+                        let raw = range.lowerBound + Double(gesture.location.x / width) * span
+                        value = min(range.upperBound, max(range.lowerBound, raw))
                     }
             )
         }
