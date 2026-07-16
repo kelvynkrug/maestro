@@ -50,10 +50,4 @@ Sources/MaestroApp/      SwiftUI: menu bar, popover, configurações, identidade
 Sources/maestro-spike/   CLI usado para validar a rota técnica (fase 0)
 packaging/               Info.plist, entitlements, cask de referência
 scripts/                 build-app.sh, release.sh (notarização), generate-icon.swift
-docs/                    arquitetura e roadmap
 ```
-
-## Documentos
-
-- [docs/arquitetura.md](docs/arquitetura.md) — rota técnica, APIs, permissões e riscos
-- [docs/roadmap.md](docs/roadmap.md) — fases de implementação (próximas: perfis automáticos, EQ e boost)
