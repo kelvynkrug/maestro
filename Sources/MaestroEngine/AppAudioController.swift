@@ -245,21 +245,55 @@ final class AppAudioController: @unchecked Sendable {
             }
             let inSamples = inData.assumingMemoryBound(to: Float32.self)
             let inCount = Int(inputList[index].mDataByteSize) / MemoryLayout<Float32>.size
-            let shared = min(outCount, inCount)
-
-            for sample in 0..<shared {
-                outSamples[sample] = inSamples[sample] * gain
+            let inChannels = Int(inputList[index].mNumberChannels)
+            let channels = Int(outBuffer.mNumberChannels)
+            guard inChannels > 0, channels > 0 else {
+                memset(outData, 0, Int(outBuffer.mDataByteSize))
+                continue
             }
-            for sample in shared..<outCount {
+
+            // O tap é sempre um mixdown estéreo, mas a saída pode ter outro layout
+            // (AirPods em call ficam mono/HFP): o mapeamento é por frame, nunca por amostra crua.
+            let frames = min(inCount / inChannels, outCount / channels)
+            let written = frames * channels
+            if inChannels == channels {
+                for sample in 0..<written {
+                    outSamples[sample] = inSamples[sample] * gain
+                }
+            } else if channels == 1 {
+                let mixGain = gain / Float(inChannels)
+                for frame in 0..<frames {
+                    var sum: Float32 = 0
+                    let inBase = frame * inChannels
+                    for channel in 0..<inChannels {
+                        sum += inSamples[inBase + channel]
+                    }
+                    outSamples[frame] = sum * mixGain
+                }
+            } else {
+                for frame in 0..<frames {
+                    let inBase = frame * inChannels
+                    let outBase = frame * channels
+                    for channel in 0..<channels {
+                        if channel < inChannels {
+                            outSamples[outBase + channel] = inSamples[inBase + channel] * gain
+                        } else if inChannels == 1 {
+                            outSamples[outBase + channel] = inSamples[inBase] * gain
+                        } else {
+                            outSamples[outBase + channel] = 0
+                        }
+                    }
+                }
+            }
+            for sample in written..<outCount {
                 outSamples[sample] = 0
             }
 
-            let channels = Int(outBuffer.mNumberChannels)
-            if eqOn, index < Self.maxBuffers, channels >= 1, channels <= Self.maxChannels {
-                applyEQ(samples: outSamples, count: shared, channels: channels, bufferIndex: index)
+            if eqOn, index < Self.maxBuffers, channels <= Self.maxChannels {
+                applyEQ(samples: outSamples, count: written, channels: channels, bufferIndex: index)
             }
             if gain > 1 || eqOn, index < Self.maxBuffers {
-                applyLimiter(samples: outSamples, count: shared, bufferIndex: index)
+                applyLimiter(samples: outSamples, count: written, bufferIndex: index)
             }
         }
     }
