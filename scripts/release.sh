@@ -82,7 +82,7 @@ cat > dist/appcast.xml <<EOF
 </rss>
 EOF
 
-echo "→ Publicando GitHub Release v$VERSION…"
+echo "→ Publicando GitHub Release v${VERSION}…"
 gh release create "v$VERSION" "$ZIP" dist/appcast.xml --repo "$REPO" \
   --title "Maestro v$VERSION" --generate-notes \
   || gh release upload "v$VERSION" "$ZIP" dist/appcast.xml --repo "$REPO" --clobber
